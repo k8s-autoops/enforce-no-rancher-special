@@ -1,6 +1,6 @@
-# enforce-qcloud-internal-lb
+# enforce-no-rancher-special
 
-自动强制为 腾讯云 TKE 集群 Loadbalancer 类型的 Service 切换为内网类型的负载均衡
+禁用一些 Rancher 自定义的功能，防止出现与标准 Kubernetes 不符合的行为
 
 ## 使用方式
 
@@ -13,14 +13,14 @@
 apiVersion: v1
 kind: ServiceAccount
 metadata:
-  name: enforce-qcloud-internal-lb
+  name: enforce-no-rancher-special
   namespace: autoops
 ---
 # create clusterrole
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRole
 metadata:
-  name: enforce-qcloud-internal-lb
+  name: enforce-no-rancher-special
 rules:
   - apiGroups: [""]
     resources: ["namespaces"]
@@ -30,21 +30,21 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1beta1
 kind: ClusterRoleBinding
 metadata:
-  name: enforce-qcloud-internal-lb
+  name: enforce-no-rancher-special
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: enforce-qcloud-internal-lb
+  name: enforce-no-rancher-special
 subjects:
   - kind: ServiceAccount
-    name: enforce-qcloud-internal-lb
+    name: enforce-no-rancher-special
     namespace: autoops
 ---
 # create job
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: install-enforce-qcloud-internal-lb
+  name: install-enforce-no-rancher-special
   namespace: autoops
 spec:
   template:
@@ -55,13 +55,13 @@ spec:
           image: autoops/admission-bootstrapper
           env:
             - name: ADMISSION_NAME
-              value: enforce-qcloud-internal-lb
+              value: enforce-no-rancher-special
             - name: ADMISSION_IMAGE
-              value: autoops/enforce-qcloud-internal-lb
+              value: autoops/enforce-no-rancher-special
             - name: ADMISSION_ENVS
               value: ""
             - name: ADMISSION_SERVICE_ACCOUNT
-              value: "enforce-qcloud-internal-lb"
+              value: "enforce-no-rancher-special"
             - name: ADMISSION_MUTATING
               value: "true"
             - name: ADMISSION_IGNORE_FAILURE
@@ -69,16 +69,9 @@ spec:
             - name: ADMISSION_SIDE_EFFECT
               value: "None"
             - name: ADMISSION_RULES
-              value: '[{"operations":["CREATE"],"apiGroups":[""], "apiVersions":["*"], "resources":["services"]}]'
+              value: '[{"operations":["CREATE"],"apiGroups":[""], "apiVersions":["*"], "resources":["services"]},{"operations":["CREATE","UPDATE"],"apiGroups":["*"], "apiVersions":["*"], "resources":["ingresses"]}]'
       restartPolicy: OnFailure
 ```
-
-* 为需要启用的命名空间，添加注解，指明要使用的内网
-
-  * 指定子网 `autoops.enforce-qcloud-internal-lb/subnet=subnet-xxxxxx`
-  * 开启直连 `autoops.enforce-qcloud-internal-lb/direct=true`
-  
-  **可以配合 `enforce-ns-annotations` 自动为新命名空间启用此注解**
 
 ## Credits
 
