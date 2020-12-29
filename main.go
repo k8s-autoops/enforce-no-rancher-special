@@ -64,6 +64,9 @@ func main() {
 						return
 					}
 					for _, rule := range obj.Spec.Rules {
+						if rule.HTTP == nil {
+							continue
+						}
 						for _, path := range rule.HTTP.Paths {
 							if regexpAutoCreatedIngressService.MatchString(path.Backend.ServiceName) {
 								deny = denyMessageNoAutoCreatedIngressService
